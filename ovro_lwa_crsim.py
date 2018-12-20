@@ -6,6 +6,8 @@ Created on Wed Dec 19 13:25:21 2018
 @author: romerowo
 """
 
+import matplotlib
+matplotlib.use('Agg')
 import sys
 from pylab import *
 
