@@ -11,10 +11,17 @@ from scipy.interpolate import Akima1DInterpolator
 
 class Detector:
     def __init__(self):
+        #print 'IMPORTING DETECTOR'
         self.kB = 1.3806488e-17 #Watt / MHz / Kelvin 
         self.c = 299.792458 # in m MHz
         self.Z0 = 120.*np.pi# Ohms
-
+        f = np.load('filter_function_20190115.npz')
+        self.filter = f['filter_array'] # made for self.fr_fine = np.arange(30., 80.1, 0.1)
+        #self.filter = 1.
+        #self.filter[250] = 1.
+        #self.filter *= 1.e-8
+        #self.filter[250] = 1.
+        #self.filter[250]
         '''Antenna zenithal gain pattern'''
         zen =      np.array([0.,  15.,  30.,  45.,  60.,  75., 80.,  85.,   90. ])
         zen_gain = np.array([8.6, 8.03, 7.28, 5.84, 4.00,  0., -2.9, -8.3, -40.])
@@ -29,18 +36,31 @@ class Detector:
         self.Z_im_interp = Akima1DInterpolator(fr, Z_im)
         self.Z_in = 100. # Ohms, the impedance seen by the terminals of the antenna.
         
-        self.f_c = 55. # MHz
-        lam_c = self.c/self.f_c
-        
-        self.A_0 = 4. * self.Z_re_interp(self.f_c) / self.Z0 * lam_c**2 / 4. / np.pi 
-        self.A_0 *= np.abs(self.Z_in)**2 / np.abs(self.Z_re_interp(self.f_c)+1j*self.Z_im_interp(self.f_c)+self.Z_in)**2
         
         '''Noise'''
         df = 0.1
-        fr_fine = np.arange(30., 80., df)
-        self.Noise = (4.*(self.kB*1.e-6)*self.galactic_noise_temp(fr_fine))
-        self.Noise *= self.Z_re_interp(fr_fine) * np.abs(self.Z_in)**2/np.abs(self.Z_in + self.Z_re_interp(fr_fine)+1j*self.Z_im_interp(fr_fine))**2
-        self.Noise += self.kB*1.e-6*250.*self.Z_in # 250. Kelvin internal noise
+        self.fr_fine = np.arange(30., 80.1, df)
+        
+        '''P_div is the power from the voltage divider'''
+        P_div = np.abs(self.Z_in)**2/np.abs(self.Z_in + self.Z_re_interp(self.fr_fine)+1j*self.Z_im_interp(self.fr_fine))**2
+        self.Noise = (4.*(self.kB*1.e-6)*self.galactic_noise_temp(self.fr_fine)) * self.Z_re_interp(self.fr_fine) 
+        self.Noise *= P_div
+        self.Noise *= self.filter
+        self.Noise += self.kB*1.e-6*250.*np.real(self.Z_in) # 250. Kelvin internal noise
+        
+
+        self.f_c = 55. # MHz
+        lam_c = self.c/self.f_c
+        
+        self.h_eff = 4. * self.Z_re_interp(self.fr_fine) / self.Z0 * lam_c**2 / 4. / np.pi 
+        self.h_eff *= np.abs(self.Z_in)**2 / np.abs(self.Z_re_interp(self.fr_fine)+1j*self.Z_im_interp(self.fr_fine)+self.Z_in)**2
+        self.h_eff *= self.filter
+        self.h_eff = np.sqrt(self.h_eff)
+        
+        self.h_0 = np.mean(self.h_eff) # assume flat spectrum for CR pulse
+        #self.A_0 = 4. * self.Z_re_interp(self.f_c) / self.Z0 * lam_c**2 / 4. / np.pi 
+        #self.A_0 *= np.abs(self.Z_in)**2 / np.abs(self.Z_re_interp(self.f_c)+1j*self.Z_im_interp(self.f_c)+self.Z_in)**2
+
         
         self.V_rms = np.sqrt(np.sum(self.Noise * df*1.e6))
         
@@ -49,7 +69,7 @@ class Detector:
     def Efield_2_Voltage(self, E_field, theta_zenith_deg): # input in V/m
         # Get directivity
         D = self.zen_gain_interp(theta_zenith_deg)
-        return E_field * np.sqrt(self.A_0 * 10**(D/10.))
+        return E_field * self.h_0 * np.sqrt( 10**(D/10.))
         
     ''' Frequencies are in MHz'''
     def galactic_noise(self, freq):
@@ -60,6 +80,7 @@ class Detector:
     
     def galactic_noise_temp(self, freq):
         return 1./2./self.kB * self.c**2 / freq**2 * self.galactic_noise(freq)*1.e6
+    
 '''
 
 
