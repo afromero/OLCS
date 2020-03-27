@@ -209,12 +209,24 @@ class Radio_Emission:
     
     def get_pol(self, x_Xmax, y_Xmax, z_Xmax, x_pos, y_pos, z_pos):
         #shower axis vector
-        x_ax = x_pos - x_Xmax 
-        y_ax = y_pos - y_Xmax 
-        z_ax = z_pos - z_Xmax
+        #print '* %+1.2f %+1.2f %+1.2f %+1.2f %+1.2f %+1.2f '%(x_pos, y_pos, z_pos, x_Xmax, y_Xmax, z_Xmax)
+        x_ax = (x_pos - x_Xmax)
+        y_ax = (y_pos - y_Xmax) 
+        z_ax = (z_pos - z_Xmax)
         
         x_pol = y_ax * self.B_z - z_ax * self.B_y
         y_pol = z_ax * self.B_x - x_ax * self.B_z
         z_pol = x_ax * self.B_y - y_ax * self.B_x
+
+        '''
+        ph = np.arctan2(y_ax, x_ax)
+        th = np.arccos(z_ax/np.sqrt(x_ax**2 + y_ax**2 + z_ax**2))
+        k_x = np.sin(th)*np.cos(ph)
+        k_y = np.sin(th)*np.sin(ph)
+        k_z = np.cos(th)
+        print '* in get_pol: k_x %+1.2f k_y %+1.2f k_z %+1.2f'%(k_x, k_y, k_z)
+        print '* in get_pol: B_x %+1.2e B_y %+1.2e B_z %+1.2e'%(self.B_x, self.B_y, self.B_z)        
+        print '* in get_pol: x_pol %+1.2e y_pol %+1.2e z_pol %+1.2e'%(x_pol, y_pol, z_pol)
+        '''
         mag = np.sqrt(x_pol**2 + y_pol**2 + z_pol**2)
         return x_pol/mag, y_pol/mag, z_pol/mag

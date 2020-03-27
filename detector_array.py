@@ -14,9 +14,24 @@ class Detector_Array:
         self.df = None
         if mode=='file':
             self.df = pd.read_excel(fnm, sheet_name='Sheet1', header = None)
-            self.x = self.df[0][0:251]*1.e-3
-            self.y = self.df[1][0:251]*1.e-3
+            self.x = self.df[0][0:256]*1.e-3
+            self.y = self.df[1][0:256]*1.e-3
+            #self.x = self.df[0][0:251]*1.e-3
+            #self.y = self.df[1][0:251]*1.e-3
             self.z = 1.222*np.ones(len(self.x)) # elevation of OVRO-LWA
+        if mode=='Ryan':
+            self.x = []
+            self.y = []
+            self.z = []
+            self.z0 = 1.222
+            for line in file('OVRO-LWA_256_ant_pos_Ryan.txt'):
+                #print line
+                self.x.append(float(line.split(',')[0]))
+                self.y.append(float(line.split(',')[1]))
+                self.z.append(float(line.split(',')[2]))
+            self.x = np.array(self.x)*1.e-3
+            self.y = np.array(self.y)*1.e-3
+            self.z = self.z0 + np.array(self.z)*1.e-3
         
     ####################################################################################
 
